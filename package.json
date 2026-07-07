@@ -1,0 +1,17 @@
+{
+  "name": "zhixingyun-train",
+  "version": "0.1.0",
+  "private": true,
+  "author": "tuboyuan",
+  "description": "智行云火车票售票系统",
+  "scripts": {
+    "dev": "concurrently -n web,admin -c cyan,magenta \"npm run web-dev --prefix web\" \"npm run admin-dev --prefix admin\"",
+    "dev:web": "npm run web-dev --prefix web",
+    "dev:admin": "npm run admin-dev --prefix admin",
+    "install:all": "npm install --prefix web && npm install --prefix admin",
+    "build": "npm run build --prefix web && npm run build --prefix admin"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
