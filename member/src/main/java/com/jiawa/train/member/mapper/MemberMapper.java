@@ -6,6 +6,7 @@ import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 
+/** 会员表数据访问接口（MyBatis Mapper）。 */
 public interface MemberMapper {
     long countByExample(MemberExample example);
 

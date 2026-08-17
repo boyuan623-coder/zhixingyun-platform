@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/** 管理端车站基础数据。 */
 @RestController
 @RequestMapping("/admin/station")
 public class StationAdminController {

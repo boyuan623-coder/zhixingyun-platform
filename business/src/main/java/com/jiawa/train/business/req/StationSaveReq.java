@@ -6,6 +6,10 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
+/**
+ * 车站基础数据新增/修改请求。
+ */
+
 public class StationSaveReq {
 
     /**

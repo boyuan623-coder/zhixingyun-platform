@@ -1,10 +1,14 @@
 package com.jiawa.train.member.resp;
 
+/** 会员登录成功响应 DTO。 */
 public class MemberLoginResp {
+    /** 会员主键 */
     private Long id;
 
+    /** 手机号 */
     private String mobile;
 
+    /** JWT 令牌，客户端后续请求需携带 */
     private String token;
 
     public Long getId() {

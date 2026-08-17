@@ -2,15 +2,24 @@ package com.jiawa.train.business.domain;
 
 import java.util.Date;
 
+/**
+ * 车厢模板实体，对应 train_carriage 表。
+ * <p>模板层：描述某车次下各车厢的序号、席别、座位行列数等静态配置。
+ * 生成每日数据时复制为 DailyTrainCarriage。
+ */
+
 public class TrainCarriage {
     private Long id;
 
     private String trainCode;
 
+    /** 车厢序号 */
     private Integer index;
 
+    /** 席别类型（如一等座、二等座） */
     private String seatType;
 
+    /** 车厢座位总数 */
     private Integer seatCount;
 
     private Integer rowCount;

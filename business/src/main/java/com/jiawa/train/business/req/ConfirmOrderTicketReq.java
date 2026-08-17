@@ -3,6 +3,10 @@ package com.jiawa.train.business.req;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
+/**
+ * 订单中单张车票明细，含乘客信息与座位选择。
+ */
+
 public class ConfirmOrderTicketReq {
 
     /**

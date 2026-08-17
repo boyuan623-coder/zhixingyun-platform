@@ -9,6 +9,12 @@ import org.springframework.scheduling.quartz.SchedulerFactoryBean;
 import javax.sql.DataSource;
 import java.io.IOException;
 
+/**
+ * Quartz 调度器配置。
+ * <p>创建 SchedulerFactoryBean，绑定数据源（任务持久化到数据库）、
+ * 自定义 MyJobFactory，并设置启动延迟。
+ */
+
 @Configuration
 public class SchedulerConfig {
 

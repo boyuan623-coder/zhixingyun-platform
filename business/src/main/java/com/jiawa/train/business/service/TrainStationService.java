@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+/** 车次停靠站服务 —— 定义某车次途经哪些站、站序、里程、到发时刻。 */
 @Service
 public class TrainStationService {
 
@@ -112,6 +113,7 @@ public class TrainStationService {
         trainStationMapper.deleteByPrimaryKey(id);
     }
 
+    /** 按车次查询全部停靠站，按 index 升序 —— O-D 循环与 sell 位图长度的依据 */
     public List<TrainStation> selectByTrainCode(String trainCode) {
         TrainStationExample trainStationExample = new TrainStationExample();
         trainStationExample.setOrderByClause("`index` asc");

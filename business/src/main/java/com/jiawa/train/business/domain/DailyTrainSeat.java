@@ -2,6 +2,8 @@ package com.jiawa.train.business.domain;
 
 import java.util.Date;
 
+/** 每日座位，sell 为按站序的售卖位图。 */
+
 public class DailyTrainSeat {
     private Long id;
 
@@ -19,6 +21,7 @@ public class DailyTrainSeat {
 
     private Integer carriageSeatIndex;
 
+    /** 售卖位图：按途经站区间标记该座位是否已售，购票时更新对应区间位 */
     private String sell;
 
     private Date createTime;

@@ -3,6 +3,11 @@ package com.jiawa.train.business.domain;
 import java.math.BigDecimal;
 import java.util.Date;
 
+/**
+ * 每日途经站实体，对应 daily_train_station 表。
+ * <p>每日层：某日期某车次各站的到发时刻、站序 index 及累计里程 km。
+ */
+
 public class DailyTrainStation {
     private Long id;
 
@@ -10,6 +15,7 @@ public class DailyTrainStation {
 
     private String trainCode;
 
+    /** 站序：该车次途经站的顺序号 */
     private Integer index;
 
     private String name;
@@ -22,6 +28,7 @@ public class DailyTrainStation {
 
     private Date stopTime;
 
+    /** 从始发站至该站的累计里程（公里） */
     private BigDecimal km;
 
     private Date createTime;

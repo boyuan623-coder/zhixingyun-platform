@@ -2,6 +2,10 @@ package com.jiawa.train.business.req;
 
 import com.jiawa.train.common.req.PageReq;
 
+/**
+ * 途经站模板分页查询请求。
+ */
+
 public class TrainStationQueryReq extends PageReq {
 
     private String trainCode;

@@ -4,8 +4,10 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 
+/** 座位列枚举 —— 定义各席别对应的列字母（高铁/动车布局）。 */
 public enum SeatColEnum {
 
+    /** 一等座 A 列 */
     YDZ_A("A", "A", "1"),
     YDZ_C("C", "C", "1"),
     YDZ_D("D", "D", "1"),

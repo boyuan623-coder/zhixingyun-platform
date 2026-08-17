@@ -1,6 +1,7 @@
 package com.jiawa.train.common.controller;
 
 import com.jiawa.train.common.exception.BusinessException;
+import com.jiawa.train.common.exception.BusinessExceptionEnum;
 import com.jiawa.train.common.resp.CommonResp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -9,18 +10,17 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-/**
- * 统一异常处理、数据预处理等
- */
+/** 全局异常处理器（common 模块）。 */
 @ControllerAdvice
 public class ControllerExceptionHandler {
 
     private static final Logger LOG = LoggerFactory.getLogger(ControllerExceptionHandler.class);
 
     /**
-     * 所有异常统一处理
-     * @param e
-     * @return
+     * 兜底异常处理：捕获所有未分类异常，返回通用错误提示，避免泄露内部细节。
+     *
+     * @param e 任意未捕获异常
+     * @return success=false 的通用响应
      */
     @ExceptionHandler(value = Exception.class)
     @ResponseBody
@@ -33,9 +33,10 @@ public class ControllerExceptionHandler {
     }
 
     /**
-     * 业务异常统一处理
-     * @param e
-     * @return
+     * 业务异常处理：将 {@link BusinessExceptionEnum} 中的中文描述返回给前端。
+     *
+     * @param e 携带业务错误码的自定义异常
+     * @return success=false，message 为业务提示语
      */
     @ExceptionHandler(value = BusinessException.class)
     @ResponseBody
@@ -48,9 +49,10 @@ public class ControllerExceptionHandler {
     }
 
     /**
-     * 校验异常统一处理
-     * @param e
-     * @return
+     * 参数校验异常处理：{@code @Valid} 校验失败时，取第一条错误信息返回。
+     *
+     * @param e Spring MVC 绑定校验异常
+     * @return success=false，message 为字段校验提示
      */
     @ExceptionHandler(value = BindException.class)
     @ResponseBody

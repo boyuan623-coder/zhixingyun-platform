@@ -34,3 +34,19 @@ build/
 .vscode/
 
 log/
+*.log
+
+# 本地覆盖可能含内网地址或真实口令，请勿提交
+**/application-local.properties
+!**/application-local.properties.example
+
+# 运行不需要的辅助内容
+docs/
+bench/
+vm/
+http/
+generator/
+docker/tools/
+docker/README.md
+*.zip
+

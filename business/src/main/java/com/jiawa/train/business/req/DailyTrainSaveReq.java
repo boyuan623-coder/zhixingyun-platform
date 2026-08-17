@@ -6,6 +6,10 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
+/**
+ * 每日车次新增/修改请求。
+ */
+
 public class DailyTrainSaveReq {
 
     /**

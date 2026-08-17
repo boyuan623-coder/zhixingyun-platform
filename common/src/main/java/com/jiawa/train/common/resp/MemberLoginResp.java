@@ -1,5 +1,6 @@
 package com.jiawa.train.common.resp;
 
+/** 会员登录响应 DTO（common 模块）。 */
 public class MemberLoginResp {
     private Long id;
 

@@ -6,6 +6,10 @@ import java.util.Date;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import java.math.BigDecimal;
 
+/**
+ * 每日区间余票查询响应，含各席别余票数量与票价。
+ */
+
 public class DailyTrainTicketQueryResp {
 
     /**

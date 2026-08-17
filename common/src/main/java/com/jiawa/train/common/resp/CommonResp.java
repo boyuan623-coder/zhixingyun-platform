@@ -1,5 +1,6 @@
 package com.jiawa.train.common.resp;
 
+/** 统一 API 响应包装（common 模块）。 */
 public class CommonResp<T> {
 
     /**

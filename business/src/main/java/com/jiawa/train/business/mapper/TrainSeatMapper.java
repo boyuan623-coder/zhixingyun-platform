@@ -5,6 +5,10 @@ import com.jiawa.train.business.domain.TrainSeatExample;
 import java.util.List;
 import org.apache.ibatis.annotations.Param;
 
+/**
+ * train_seat 表数据访问层，座位模板的数据库操作。
+ */
+
 public interface TrainSeatMapper {
     long countByExample(TrainSeatExample example);
 

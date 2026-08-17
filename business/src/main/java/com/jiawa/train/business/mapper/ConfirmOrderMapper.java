@@ -5,6 +5,10 @@ import com.jiawa.train.business.domain.ConfirmOrderExample;
 import java.util.List;
 import org.apache.ibatis.annotations.Param;
 
+/**
+ * confirm_order 表数据访问层，确认订单的数据库操作。
+ */
+
 public interface ConfirmOrderMapper {
     long countByExample(ConfirmOrderExample example);
 

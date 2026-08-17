@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+/** 车次基础数据服务 —— 列车「模板」主数据，genDaily 的数据源。 */
 @Service
 public class TrainService {
 
@@ -95,6 +96,7 @@ public class TrainService {
         return BeanUtil.copyToList(trainList, TrainQueryResp.class);
     }
 
+    /** 查询全部基础车次，按车次号升序 —— genDaily 遍历入口 */
     public List<Train> selectAll() {
         TrainExample trainExample = new TrainExample();
         trainExample.setOrderByClause("code asc");

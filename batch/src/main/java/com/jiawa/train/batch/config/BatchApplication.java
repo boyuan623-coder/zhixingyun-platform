@@ -9,6 +9,12 @@ import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.core.env.Environment;
 
+/**
+ * 批处理模块启动类。
+ * <p>独立 Spring Boot 应用，集成 Quartz 定时调度与 OpenFeign 远程调用 business 服务。
+ * 主要职责：按 cron 触发生成每日车次数据等后台任务。
+ */
+
 @SpringBootApplication
 @ComponentScan("com.jiawa")
 @MapperScan("com.jiawa.train.*.mapper")

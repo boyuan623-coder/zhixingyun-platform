@@ -8,10 +8,6 @@
 // @Configuration
 // public class QuartzConfig {
 //
-//     /**
-//      * 声明一个任务
-//      * @return
-//      */
 //     @Bean
 //     public JobDetail jobDetail() {
 //         return JobBuilder.newJob(TestJob.class)
@@ -20,10 +16,6 @@
 //                 .build();
 //     }
 //
-//     /**
-//      * 声明一个触发器，什么时候触发这个任务
-//      * @return
-//      */
 //     @Bean
 //     public Trigger trigger() {
 //         return TriggerBuilder.newTrigger()

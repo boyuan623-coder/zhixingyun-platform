@@ -3,6 +3,12 @@ package com.jiawa.train.business.domain;
 import java.math.BigDecimal;
 import java.util.Date;
 
+/**
+ * 每日区间余票实体，对应 daily_train_ticket 表。
+ * <p>每日层：预计算任意两站之间的余票数量与各席别票价，加速查票接口。
+ * startIndex/endIndex 表示区间起止站在全程中的站序；ydz/edz/rw/yw 为各席别余票与票价。
+ */
+
 public class DailyTrainTicket {
     private Long id;
 
@@ -16,6 +22,7 @@ public class DailyTrainTicket {
 
     private Date startTime;
 
+    /** 区间起点站在全程中的站序（从1开始） */
     private Integer startIndex;
 
     private String end;
@@ -24,22 +31,31 @@ public class DailyTrainTicket {
 
     private Date endTime;
 
+    /** 区间终点站在全程中的站序 */
     private Integer endIndex;
 
+    /** 一等座余票数量 */
     private Integer ydz;
 
+    /** 一等座票价 */
     private BigDecimal ydzPrice;
 
+    /** 二等座余票数量 */
     private Integer edz;
 
+    /** 二等座票价 */
     private BigDecimal edzPrice;
 
+    /** 软卧余票数量 */
     private Integer rw;
 
+    /** 软卧票价 */
     private BigDecimal rwPrice;
 
+    /** 硬卧余票数量 */
     private Integer yw;
 
+    /** 硬卧票价 */
     private BigDecimal ywPrice;
 
     private Date createTime;

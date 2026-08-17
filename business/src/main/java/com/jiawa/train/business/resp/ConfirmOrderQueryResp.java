@@ -5,6 +5,10 @@ import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import java.util.Date;
 import com.fasterxml.jackson.annotation.JsonFormat;
 
+/**
+ * 确认订单查询响应，含订单状态与车票明细。
+ */
+
 public class ConfirmOrderQueryResp {
 
     /**

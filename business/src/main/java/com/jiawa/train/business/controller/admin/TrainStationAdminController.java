@@ -11,6 +11,7 @@ import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
+/** 管理端 —— 车次停靠站 CRUD（配置某车次途经站、站序、里程、到发时刻）。 */
 @RestController
 @RequestMapping("/admin/train-station")
 public class TrainStationAdminController {

@@ -16,6 +16,7 @@ import org.slf4j.MDC;
 
 import java.util.Date;
 
+/** 每日车次数据生成定时任务（batch 模块核心 Job）。 */
 @DisallowConcurrentExecution
 public class DailyTrainJob implements Job {
 

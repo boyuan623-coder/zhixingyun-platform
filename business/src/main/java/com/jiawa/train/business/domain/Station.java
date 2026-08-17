@@ -2,6 +2,11 @@ package com.jiawa.train.business.domain;
 
 import java.util.Date;
 
+/**
+ * 车站基础数据实体，对应 station 表。
+ * <p>全局车站字典，存储站名、拼音等，供车次配置和余票查询使用。
+ */
+
 public class Station {
     private Long id;
 

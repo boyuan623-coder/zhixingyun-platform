@@ -1,15 +1,20 @@
 package com.jiawa.train.business.controller.admin;
 
-import com.jiawa.train.common.resp.CommonResp;
-import com.jiawa.train.common.resp.PageResp;
-import com.jiawa.train.business.req.ConfirmOrderQueryReq;
-import com.jiawa.train.business.req.ConfirmOrderDoReq;
-import com.jiawa.train.business.resp.ConfirmOrderQueryResp;
 import com.jiawa.train.business.service.ConfirmOrderService;
+import com.jiawa.train.common.resp.CommonResp;
 import jakarta.annotation.Resource;
-import jakarta.validation.Valid;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * 管理端：手动触发订单超时取消（也可由 batch Quartz 调用）。
+ */
 @RestController
 @RequestMapping("/admin/confirm-order")
 public class ConfirmOrderAdminController {
@@ -17,22 +22,17 @@ public class ConfirmOrderAdminController {
     @Resource
     private ConfirmOrderService confirmOrderService;
 
-    @PostMapping("/save")
-    public CommonResp<Object> save(@Valid @RequestBody ConfirmOrderDoReq req) {
-        confirmOrderService.save(req);
-        return new CommonResp<>();
-    }
+    @Value("${train.order.timeout-minutes:15}")
+    private int timeoutMinutes;
 
-    @GetMapping("/query-list")
-    public CommonResp<PageResp<ConfirmOrderQueryResp>> queryList(@Valid ConfirmOrderQueryReq req) {
-        PageResp<ConfirmOrderQueryResp> list = confirmOrderService.queryList(req);
-        return new CommonResp<>(list);
+    @GetMapping("/cancel-timeout")
+    public CommonResp<Map<String, Object>> cancelTimeout(
+            @RequestParam(required = false) Integer minutes) {
+        int m = minutes == null ? timeoutMinutes : minutes;
+        int n = confirmOrderService.cancelTimeoutOrders(m);
+        Map<String, Object> data = new HashMap<>();
+        data.put("cancelled", n);
+        data.put("timeoutMinutes", m);
+        return new CommonResp<>(data);
     }
-
-    @DeleteMapping("/delete/{id}")
-    public CommonResp<Object> delete(@PathVariable Long id) {
-        confirmOrderService.delete(id);
-        return new CommonResp<>();
-    }
-
 }

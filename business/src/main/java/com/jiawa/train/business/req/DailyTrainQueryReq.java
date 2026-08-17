@@ -5,6 +5,10 @@ import org.springframework.format.annotation.DateTimeFormat;
 
 import java.util.Date;
 
+/**
+ * 每日车次分页查询请求，按日期查询实际售票车次。
+ */
+
 public class DailyTrainQueryReq extends PageReq {
 
     @DateTimeFormat(pattern = "yyyy-MM-dd")

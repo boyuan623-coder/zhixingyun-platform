@@ -2,6 +2,12 @@ package com.jiawa.train.business.domain;
 
 import java.util.Date;
 
+/**
+ * 车次模板实体，对应 train 表。
+ * <p>模板层数据：定义车次编号、类型、始发终到站及时刻等基础配置，不随日期变化。
+ * 定时任务根据模板生成每日车次（DailyTrain）及关联的座位、余票等数据。
+ */
+
 public class Train {
     private Long id;
 

@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 
 import java.util.Date;
 
+/** 乘车人保存（新增/修改）请求 DTO。 */
 public class PassengerSaveReq {
 
     /**

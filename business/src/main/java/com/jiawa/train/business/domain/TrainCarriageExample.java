@@ -4,6 +4,11 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+/**
+ * MyBatis 动态查询条件生成类，对应 train_carriage 表。
+ * <p>配合 Mapper XML 生成 WHERE/ORDER BY 等动态 SQL 片段。
+ */
+
 public class TrainCarriageExample {
     protected String orderByClause;
 

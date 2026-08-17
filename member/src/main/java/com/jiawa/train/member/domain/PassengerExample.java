@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+/** 乘车人动态查询条件构建器（MyBatis Generator 生成）。 */
 public class PassengerExample {
     protected String orderByClause;
 

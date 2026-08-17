@@ -6,6 +6,10 @@ import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 
+/**
+ * member 表数据访问层（batch 模块）。
+ */
+
 public interface MemberMapper {
     long countByExample(MemberExample example);
 

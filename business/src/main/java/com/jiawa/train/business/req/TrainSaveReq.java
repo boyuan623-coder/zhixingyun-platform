@@ -6,6 +6,10 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
+/**
+ * 车次模板新增/修改请求，用于后台维护车次基础信息。
+ */
+
 public class TrainSaveReq {
 
     /**

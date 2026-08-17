@@ -7,6 +7,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+/** Spring MVC 拦截器配置 —— 区分用户端与管理端的鉴权策略。 */
 @Configuration
 public class SpringMvcConfig implements WebMvcConfigurer {
 
@@ -25,7 +26,9 @@ public class SpringMvcConfig implements WebMvcConfigurer {
                .addPathPatterns("/**")
                .excludePathPatterns(
                        "/hello",
-                       "/admin/**"
+                       "/admin/**",
+                       "/daily-train-ticket/warm-up",
+                       "/daily-train-ticket/query-list-db"
                );
    }
 }

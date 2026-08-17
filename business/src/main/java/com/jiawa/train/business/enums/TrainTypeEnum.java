@@ -6,10 +6,14 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 
+/** 车次类型枚举 —— 车型代码与票价系数。 */
 public enum TrainTypeEnum {
 
+    /** 高铁，票价系数 1.2 */
     G("G", "高铁", new BigDecimal("1.2")),
+    /** 动车，票价系数 1.0 */
     D("D", "动车", new BigDecimal("1")),
+    /** 快速，票价系数 0.8 */
     K("K", "快速", new BigDecimal("0.8"));
 
     private String code;

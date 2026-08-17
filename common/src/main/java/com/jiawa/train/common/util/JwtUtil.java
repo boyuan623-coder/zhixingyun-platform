@@ -12,14 +12,20 @@ import org.slf4j.LoggerFactory;
 import java.util.HashMap;
 import java.util.Map;
 
+/** JWT 工具类（common 模块）。 */
 public class JwtUtil {
     private static final Logger LOG = LoggerFactory.getLogger(JwtUtil.class);
 
-    /**
-     * 盐值很重要，不能泄漏，且每个项目都应该不一样，可以放到配置文件中
-     */
-    private static final String key = "TuboyuanZhiXingYun";
+    /** HMAC 签名密钥，须与 gateway 模块保持一致；生产请改为配置/环境变量。 */
+    private static final String key = "train-jwt-secret-dev";
 
+    /**
+     * 签发 JWT token，有效期 24 小时，载荷含会员 id 和 mobile。
+     *
+     * @param id     会员 ID
+     * @param mobile 手机号
+     * @return 签名字符串 token
+     */
     public static String createToken(Long id, String mobile) {
         DateTime now = DateTime.now();
         DateTime expTime = now.offsetNew(DateField.HOUR, 24);
@@ -34,16 +40,22 @@ public class JwtUtil {
         payload.put("id", id);
         payload.put("mobile", mobile);
         String token = JWTUtil.createToken(payload, key.getBytes());
-        LOG.info("生成JWT token：{}", token);
+        LOG.info("JWT token 已签发");
         return token;
     }
 
+    /**
+     * 校验 token 签名与有效期，异常或过期返回 false。
+     *
+     * @param token JWT 字符串
+     * @return 有效 true，无效 false
+     */
     public static boolean validate(String token) {
         try {
             JWT jwt = JWTUtil.parseToken(token).setKey(key.getBytes());
             // validate包含了verify
             boolean validate = jwt.validate(0);
-            LOG.info("JWT token校验结果：{}", validate);
+            LOG.debug("JWT token 校验结果：{}", validate);
             return validate;
         } catch (Exception e) {
             LOG.error("JWT token校验异常", e);
@@ -51,22 +63,19 @@ public class JwtUtil {
         }
     }
 
+    /**
+     * 解析 token 载荷为 JSONObject，去除 iat/exp/nbf 标准字段，保留 id、mobile 等业务字段。
+     *
+     * @param token JWT 字符串（调用方应确保已通过 validate）
+     * @return 业务载荷 JSON
+     */
     public static JSONObject getJSONObject(String token) {
         JWT jwt = JWTUtil.parseToken(token).setKey(key.getBytes());
         JSONObject payloads = jwt.getPayloads();
         payloads.remove(JWTPayload.ISSUED_AT);
         payloads.remove(JWTPayload.EXPIRES_AT);
         payloads.remove(JWTPayload.NOT_BEFORE);
-        LOG.info("根据token获取原始内容：{}", payloads);
+        LOG.debug("JWT payload 已解析");
         return payloads;
-    }
-
-    public static void main(String[] args) {
-        createToken(1L, "123");
-
-        String token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJuYmYiOjE2NzY4OTk4MjcsIm1vYmlsZSI6IjEyMyIsImlkIjoxLCJleHAiOjE2NzY4OTk4MzcsImlhdCI6MTY3Njg5OTgyN30.JbFfdeNHhxKhAeag63kifw9pgYhnNXISJM5bL6hM8eU";
-        validate(token);
-
-        getJSONObject(token);
     }
 }

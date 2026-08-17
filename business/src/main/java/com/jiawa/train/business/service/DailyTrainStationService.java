@@ -26,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Date;
 import java.util.List;
 
+/** 日停靠站服务 —— genDaily 链第 1 步，复制基础停靠站到日表。 */
 @Service
 public class DailyTrainStationService {
 
@@ -83,6 +84,7 @@ public class DailyTrainStationService {
         dailyTrainStationMapper.deleteByPrimaryKey(id);
     }
 
+    /** 生成某日某车次的停靠站快照（先删后插，从 train_station 复制） */
     @Transactional
     public void genDaily(Date date, String trainCode) {
         LOG.info("生成日期【{}】车次【{}】的车站信息开始", DateUtil.formatDate(date), trainCode);

@@ -16,6 +16,8 @@ import com.jiawa.train.business.domain.TrainStation;
 import com.jiawa.train.business.enums.SeatTypeEnum;
 import com.jiawa.train.business.enums.TrainTypeEnum;
 import com.jiawa.train.business.mapper.DailyTrainTicketMapper;
+import com.jiawa.train.business.redis.TicketQueryCacheService;
+import com.jiawa.train.business.redis.TicketStockRedisService;
 import com.jiawa.train.business.req.DailyTrainTicketQueryReq;
 import com.jiawa.train.business.req.DailyTrainTicketSaveReq;
 import com.jiawa.train.business.resp.DailyTrainTicketQueryResp;
@@ -32,6 +34,7 @@ import java.math.RoundingMode;
 import java.util.Date;
 import java.util.List;
 
+/** 日余票服务 —— O-D 组合票价与库存的生成器，用户查票的直接数据源。 */
 @Service
 public class DailyTrainTicketService {
 
@@ -45,6 +48,12 @@ public class DailyTrainTicketService {
 
     @Resource
     private DailyTrainSeatService dailyTrainSeatService;
+
+    @Resource
+    private TicketQueryCacheService ticketQueryCacheService;
+
+    @Resource
+    private TicketStockRedisService ticketStockRedisService;
 
     public void save(DailyTrainTicketSaveReq req) {
         DateTime now = DateTime.now();
@@ -61,6 +70,21 @@ public class DailyTrainTicketService {
     }
 
     public PageResp<DailyTrainTicketQueryResp> queryList(DailyTrainTicketQueryReq req) {
+        String cacheKey = ticketQueryCacheService.buildKey(
+                req.getDate(), req.getTrainCode(), req.getStart(), req.getEnd(), req.getPage(), req.getSize());
+        PageResp<DailyTrainTicketQueryResp> cached = ticketQueryCacheService.get(cacheKey);
+        if (cached != null) {
+            LOG.info("余票查询命中缓存 key={}", cacheKey);
+            return cached;
+        }
+
+        PageResp<DailyTrainTicketQueryResp> pageResp = queryListFromDb(req);
+        ticketQueryCacheService.put(cacheKey, pageResp);
+        return pageResp;
+    }
+
+    /** 强制查库（压测对比用） */
+    public PageResp<DailyTrainTicketQueryResp> queryListFromDb(DailyTrainTicketQueryReq req) {
         DailyTrainTicketExample dailyTrainTicketExample = new DailyTrainTicketExample();
         dailyTrainTicketExample.setOrderByClause("id desc");
         DailyTrainTicketExample.Criteria criteria = dailyTrainTicketExample.createCriteria();
@@ -94,10 +118,37 @@ public class DailyTrainTicketService {
         return pageResp;
     }
 
+    /**
+     * 开售前缓存预热：加载余票列表到查询缓存，并写入 Redis 库存键。
+     */
+    public int warmUp(Date date) {
+        DailyTrainTicketExample example = new DailyTrainTicketExample();
+        if (date != null) {
+            example.createCriteria().andDateEqualTo(date);
+        }
+        List<DailyTrainTicket> all = dailyTrainTicketMapper.selectByExample(example);
+        ticketStockRedisService.warmStockBatch(all);
+
+        DailyTrainTicketQueryReq req = new DailyTrainTicketQueryReq();
+        req.setDate(date);
+        req.setPage(1);
+        req.setSize(100);
+        PageResp<DailyTrainTicketQueryResp> page = queryListFromDb(req);
+        String key = ticketQueryCacheService.buildKey(date, null, null, null, 1, 100);
+        ticketQueryCacheService.putWarm(key, page);
+        LOG.info("余票查询缓存预热完成 date={} size={}", date, page.getList() == null ? 0 : page.getList().size());
+        return all.size();
+    }
+
     public void delete(Long id) {
         dailyTrainTicketMapper.deleteByPrimaryKey(id);
     }
 
+    /**
+     * 生成某日某车次全部 O-D 余票记录（含票价与各席别库存数）。
+     * <p>
+     * 双重循环：对每个出发站 i，枚举所有后续到达站 j，累加里程并插入一条余票行。
+     */
     @Transactional
     public void genDaily(DailyTrain dailyTrain, Date date, String trainCode) {
         LOG.info("生成日期【{}】车次【{}】的余票信息开始", DateUtil.formatDate(date), trainCode);
@@ -117,12 +168,14 @@ public class DailyTrainTicketService {
         }
 
         DateTime now = DateTime.now();
+        // 外层：出发站 O（下标 i）
         for (int i = 0; i < stationList.size(); i++) {
-            // 得到出发站
             TrainStation trainStationStart = stationList.get(i);
             BigDecimal sumKM = BigDecimal.ZERO;
+            // 内层：到达站 D（下标 j，必须排在 O 之后）
             for (int j = (i + 1); j < stationList.size(); j++) {
                 TrainStation trainStationEnd = stationList.get(j);
+                // 累加「上一站→当前站」里程，得到 O→D 总里程
                 sumKM = sumKM.add(trainStationEnd.getKm());
 
                 DailyTrainTicket dailyTrainTicket = new DailyTrainTicket();
@@ -141,9 +194,8 @@ public class DailyTrainTicketService {
                 int edz = dailyTrainSeatService.countSeat(date, trainCode, SeatTypeEnum.EDZ.getCode());
                 int rw = dailyTrainSeatService.countSeat(date, trainCode, SeatTypeEnum.RW.getCode());
                 int yw = dailyTrainSeatService.countSeat(date, trainCode, SeatTypeEnum.YW.getCode());
-                // 票价 = 里程之和 * 座位单价 * 车次类型系数
+                // 票价 = 区间里程 × 席别单价(元/公里) × 车型系数
                 String trainType = dailyTrain.getType();
-                // 计算票价系数：TrainTypeEnum.priceRate
                 BigDecimal priceRate = EnumUtil.getFieldBy(TrainTypeEnum::getPriceRate, TrainTypeEnum::getCode, trainType);
                 BigDecimal ydzPrice = sumKM.multiply(SeatTypeEnum.YDZ.getPrice()).multiply(priceRate).setScale(2, RoundingMode.HALF_UP);
                 BigDecimal edzPrice = sumKM.multiply(SeatTypeEnum.EDZ.getPrice()).multiply(priceRate).setScale(2, RoundingMode.HALF_UP);
@@ -164,5 +216,9 @@ public class DailyTrainTicketService {
         }
         LOG.info("生成日期【{}】车次【{}】的余票信息结束", DateUtil.formatDate(date), trainCode);
 
+        // 开售前预热：该车次当日余票写入 Redis 库存
+        DailyTrainTicketExample warmEx = new DailyTrainTicketExample();
+        warmEx.createCriteria().andDateEqualTo(date).andTrainCodeEqualTo(trainCode);
+        ticketStockRedisService.warmStockBatch(dailyTrainTicketMapper.selectByExample(warmEx));
     }
 }

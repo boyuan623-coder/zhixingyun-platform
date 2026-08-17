@@ -3,6 +3,10 @@ package com.jiawa.train.batch.domain;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * MyBatis 动态查询条件生成类，对应 member 表。
+ */
+
 public class MemberExample {
     protected String orderByClause;
 

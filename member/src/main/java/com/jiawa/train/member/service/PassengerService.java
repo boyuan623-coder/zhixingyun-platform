@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+/** 乘车人核心业务服务。 */
 @Service
 public class PassengerService {
 
@@ -29,10 +30,16 @@ public class PassengerService {
     @Resource
     private PassengerMapper passengerMapper;
 
+    /**
+     * 保存乘车人：id 为空新增（绑定当前登录会员），id 非空按主键更新。
+     *
+     * @param req 乘车人信息
+     */
     public void save(PassengerSaveReq req) {
         DateTime now = DateTime.now();
         Passenger passenger = BeanUtil.copyProperties(req, Passenger.class);
         if (ObjectUtil.isNull(passenger.getId())) {
+            // 新增：从 JWT 解析后的上下文注入 memberId，建立乘车人与会员的绑定关系
             passenger.setMemberId(LoginMemberContext.getId());
             passenger.setId(SnowUtil.getSnowflakeNextId());
             passenger.setCreateTime(now);
@@ -44,6 +51,12 @@ public class PassengerService {
         }
     }
 
+    /**
+     * 分页查询乘车人，可按 memberId 过滤（Controller 层已注入当前会员 ID）。
+     *
+     * @param req 分页及过滤条件
+     * @return 分页响应
+     */
     public PageResp<PassengerQueryResp> queryList(PassengerQueryReq req) {
         PassengerExample passengerExample = new PassengerExample();
         passengerExample.setOrderByClause("id desc");
@@ -69,17 +82,26 @@ public class PassengerService {
         return pageResp;
     }
 
+    /**
+     * 按主键删除乘车人。
+     *
+     * @param id 乘车人主键
+     */
     public void delete(Long id) {
         passengerMapper.deleteByPrimaryKey(id);
     }
 
     /**
-     * 查询我的所有乘客
+     * 查询当前登录会员的全部乘车人（不分页，按姓名升序）。
+     * 依赖 LoginMemberContext，仅返回本会员名下数据。
+     *
+     * @return 乘车人列表
      */
     public List<PassengerQueryResp> queryMine() {
         PassengerExample passengerExample = new PassengerExample();
         passengerExample.setOrderByClause("name asc");
         PassengerExample.Criteria criteria = passengerExample.createCriteria();
+        // 按当前登录会员 ID 过滤，保证乘车人与会员的绑定隔离
         criteria.andMemberIdEqualTo(LoginMemberContext.getId());
         List<Passenger> list = passengerMapper.selectByExample(passengerExample);
         return BeanUtil.copyToList(list, PassengerQueryResp.class);

@@ -25,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Date;
 import java.util.List;
 
+/** 日车次服务 —— genDaily 链式调度的「总指挥」。 */
 @Service
 public class DailyTrainService {
 
@@ -95,8 +96,9 @@ public class DailyTrainService {
     }
 
     /**
-     * 生成某日所有车次信息，包括车次、车站、车厢、座位
-     * @param date
+     * 生成指定日期全部车次的日数据（入口，通常由定时任务或管理端 gen-daily 触发）。
+     *
+     * @param date 目标日期，如 2026-07-16
      */
     public void genDaily(Date date) {
         List<Train> trainList = trainService.selectAll();
@@ -110,6 +112,13 @@ public class DailyTrainService {
         }
     }
 
+    /**
+     * 生成单个车次在某日的完整数据（链式调度核心方法）。
+     * 先删后插，再依次调用 station → carriage → seat → ticket 四个 genDaily。
+     *
+     * @param date  日期
+     * @param train 基础车次模板
+     */
     @Transactional
     public void genDailyTrain(Date date, Train train) {
         LOG.info("生成日期【{}】车次【{}】的信息开始", DateUtil.formatDate(date), train.getCode());

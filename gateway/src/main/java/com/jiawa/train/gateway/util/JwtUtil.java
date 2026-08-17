@@ -12,14 +12,16 @@ import org.slf4j.LoggerFactory;
 import java.util.HashMap;
 import java.util.Map;
 
+/** JWT 工具类（gateway 模块）。 */
 public class JwtUtil {
     private static final Logger LOG = LoggerFactory.getLogger(JwtUtil.class);
 
-    /**
-     * 盐值很重要，不能泄漏，且每个项目都应该不一样，可以放到配置文件中
-     */
-    private static final String key = "TuboyuanZhiXingYun";
+    /** HMAC 签名密钥，须与 common 模块保持一致；生产请改为配置/环境变量。 */
+    private static final String key = "train-jwt-secret-dev";
 
+    /**
+     * 签发 JWT token（网关模块保留此方法便于本地测试，生产签发在 member 服务）。
+     */
     public static String createToken(Long id, String mobile) {
         DateTime now = DateTime.now();
         DateTime expTime = now.offsetNew(DateField.HOUR, 24);
@@ -34,16 +36,22 @@ public class JwtUtil {
         payload.put("id", id);
         payload.put("mobile", mobile);
         String token = JWTUtil.createToken(payload, key.getBytes());
-        LOG.info("生成JWT token：{}", token);
+        LOG.info("JWT token 已签发");
         return token;
     }
 
+    /**
+     * 校验 token 签名与有效期——LoginMemberFilter 的核心调用。
+     *
+     * @param token 请求 Header 中的 JWT
+     * @return 有效 true，无效或异常 false
+     */
     public static boolean validate(String token) {
         try {
             JWT jwt = JWTUtil.parseToken(token).setKey(key.getBytes());
             // validate包含了verify
             boolean validate = jwt.validate(0);
-            LOG.info("JWT token校验结果：{}", validate);
+            LOG.debug("JWT token 校验结果：{}", validate);
             return validate;
         } catch (Exception e) {
             LOG.error("JWT token校验异常", e);
@@ -51,22 +59,16 @@ public class JwtUtil {
         }
     }
 
+    /**
+     * 解析 token 业务载荷（网关鉴权场景通常不需要，保留与 common 模块对齐）。
+     */
     public static JSONObject getJSONObject(String token) {
         JWT jwt = JWTUtil.parseToken(token).setKey(key.getBytes());
         JSONObject payloads = jwt.getPayloads();
         payloads.remove(JWTPayload.ISSUED_AT);
         payloads.remove(JWTPayload.EXPIRES_AT);
         payloads.remove(JWTPayload.NOT_BEFORE);
-        LOG.info("根据token获取原始内容：{}", payloads);
+        LOG.debug("JWT payload 已解析");
         return payloads;
-    }
-
-    public static void main(String[] args) {
-        createToken(1L, "123");
-
-        String token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJuYmYiOjE2NzY4OTk4MjcsIm1vYmlsZSI6IjEyMyIsImlkIjoxLCJleHAiOjE2NzY4OTk4MzcsImlhdCI6MTY3Njg5OTgyN30.JbFfdeNHhxKhAeag63kifw9pgYhnNXISJM5bL6hM8eU";
-        validate(token);
-
-        getJSONObject(token);
     }
 }

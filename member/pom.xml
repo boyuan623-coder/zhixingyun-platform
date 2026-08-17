@@ -10,6 +10,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>member</artifactId>
+    <name>智行云-member</name>
 
     <properties>
         <maven.compiler.source>17</maven.compiler.source>

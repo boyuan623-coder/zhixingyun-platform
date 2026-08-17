@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+/** 车站基础数据服务 —— 全局站点字典（非车次维度）。 */
 @Service
 public class StationService {
 

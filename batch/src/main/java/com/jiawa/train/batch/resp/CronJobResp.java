@@ -5,6 +5,11 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 
 import java.util.Date;
 
+/**
+ * 定时任务查询响应体。
+ * <p>返回任务名称、分组、cron 表达式、上下次触发时间及运行状态。
+ */
+
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
 public class CronJobResp {
     private String group;

@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+/** 用户端 —— 车站列表接口。 */
 @RestController
 @RequestMapping("/station")
 public class StationController {

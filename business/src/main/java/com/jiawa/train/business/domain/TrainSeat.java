@@ -2,19 +2,30 @@ package com.jiawa.train.business.domain;
 
 import java.util.Date;
 
+/**
+ * 座位模板实体，对应 train_seat 表。
+ * <p>模板层：描述某车次某车厢内每个座位的行号、列号、席别及车厢内座位序号。
+ * 生成每日数据时复制为 DailyTrainSeat，并初始化 sell 售卖位图。
+ */
+
 public class TrainSeat {
     private Long id;
 
     private String trainCode;
 
+    /** 所属车厢序号 */
     private Integer carriageIndex;
 
+    /** 座位行号 */
     private String row;
 
+    /** 座位列号（如 A/B/C） */
     private String col;
 
+    /** 席别类型 */
     private String seatType;
 
+    /** 车厢内座位序号 */
     private Integer carriageSeatIndex;
 
     private Date createTime;

@@ -1,6 +1,5 @@
-# 智行云 - member 服务本地配置示例（tuboyuan）
-# 复制为 application-local.properties 后，在 application.properties 中增加：
-# spring.profiles.active=local
+# member 服务本地配置示例
+# 复制为 application-local.properties
 
 server.port=8001
 server.servlet.context-path=/member

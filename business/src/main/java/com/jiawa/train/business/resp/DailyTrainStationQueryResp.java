@@ -6,6 +6,10 @@ import java.util.Date;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import java.math.BigDecimal;
 
+/**
+ * 每日途经站查询响应。
+ */
+
 public class DailyTrainStationQueryResp {
 
     /**

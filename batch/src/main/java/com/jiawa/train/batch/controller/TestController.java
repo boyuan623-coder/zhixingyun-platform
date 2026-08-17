@@ -7,6 +7,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * batch 模块测试控制器，用于验证服务连通性。
+ */
+
 @RestController
 public class TestController {
 

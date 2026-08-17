@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jiawa.train.payment.mapper.PayAccountMapper">
+
+    <resultMap id="BaseResultMap" type="com.jiawa.train.payment.domain.PayAccount">
+        <id column="id" jdbcType="BIGINT" property="id"/>
+        <result column="member_id" jdbcType="BIGINT" property="memberId"/>
+        <result column="balance" jdbcType="DECIMAL" property="balance"/>
+        <result column="create_time" jdbcType="TIMESTAMP" property="createTime"/>
+        <result column="update_time" jdbcType="TIMESTAMP" property="updateTime"/>
+    </resultMap>
+
+    <select id="selectByMemberId" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        select id, member_id, balance, create_time, update_time
+        from pay_account
+        where member_id = #{memberId,jdbcType=BIGINT}
+    </select>
+
+    <update id="updateBalance">
+        update pay_account
+        set balance = #{balance,jdbcType=DECIMAL},
+            update_time = now(3)
+        where member_id = #{memberId,jdbcType=BIGINT}
+    </update>
+
+    <insert id="insert" parameterType="com.jiawa.train.payment.domain.PayAccount">
+        insert into pay_account (id, member_id, balance, create_time, update_time)
+        values (#{id,jdbcType=BIGINT}, #{memberId,jdbcType=BIGINT}, #{balance,jdbcType=DECIMAL},
+                #{createTime,jdbcType=TIMESTAMP}, #{updateTime,jdbcType=TIMESTAMP})
+    </insert>
+
+</mapper>

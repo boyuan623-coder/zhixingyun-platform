@@ -4,6 +4,7 @@ package com.jiawa.train.common.req;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.NotNull;
 
+/** 分页请求基类（common 模块）。 */
 public class PageReq {
 
     @NotNull(message = "【页码】不能为空")

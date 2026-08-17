@@ -5,6 +5,10 @@ import org.quartz.Job;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
 
+/**
+ * Quartz 测试任务 2，用于多任务调度场景验证。
+ */
+
 @DisallowConcurrentExecution
 public class Test2Job implements Job {
 

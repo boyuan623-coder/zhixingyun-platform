@@ -24,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Date;
 import java.util.List;
 
+/** 日座位服务 —— 负责 sell 位图的初始化，是购票选座的库存底座。 */
 @Service
 public class DailyTrainSeatService {
 
@@ -81,6 +82,11 @@ public class DailyTrainSeatService {
         dailyTrainSeatMapper.deleteByPrimaryKey(id);
     }
 
+    /**
+     * 生成某日某车次的全部座位，并初始化 sell 位图（全 0）。
+     * <p>
+     * sell 长度 = stationList.size() - 1：每位对应相邻两站之间的区段，初始均为空闲。
+     */
     @Transactional
     public void genDaily(Date date, String trainCode) {
         LOG.info("生成日期【{}】车次【{}】的座位信息开始", DateUtil.formatDate(date), trainCode);
@@ -93,6 +99,7 @@ public class DailyTrainSeatService {
         dailyTrainSeatMapper.deleteByExample(dailyTrainSeatExample);
 
         List<TrainStation> stationList = trainStationService.selectByTrainCode(trainCode);
+        // 位图长度 = 站数 - 1；全 '0' 表示每个区段均未售出
         String sell = StrUtil.fillBefore("", '0', stationList.size() - 1);
 
         // 查出某车次的所有的座位信息
@@ -115,6 +122,11 @@ public class DailyTrainSeatService {
         LOG.info("生成日期【{}】车次【{}】的座位信息结束", DateUtil.formatDate(date), trainCode);
     }
 
+    /**
+     * 统计某日某车次某席别的座位总数，供 DailyTrainTicketService 写入余票字段。
+     *
+     * @return 座位数；无记录时返回 -1
+     */
     public int countSeat(Date date, String trainCode, String seatType) {
         DailyTrainSeatExample example = new DailyTrainSeatExample();
         example.createCriteria()

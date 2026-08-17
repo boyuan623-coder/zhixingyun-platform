@@ -6,6 +6,10 @@ import jakarta.validation.constraints.NotNull;
 
 import java.util.Date;
 
+/**
+ * 每日车厢新增/修改请求。
+ */
+
 public class DailyTrainCarriageSaveReq {
 
     /**

@@ -6,6 +6,10 @@ import jakarta.validation.constraints.NotNull;
 
 import java.util.Date;
 
+/**
+ * 车厢模板新增/修改请求，配置车次车厢与席别。
+ */
+
 public class TrainCarriageSaveReq {
 
     /**

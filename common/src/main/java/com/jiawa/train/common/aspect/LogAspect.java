@@ -19,6 +19,7 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.multipart.MultipartFile;
 
+/** 日志切面（common 模块）。 */
 @Aspect
 @Component
 public class LogAspect {
@@ -29,12 +30,15 @@ public class LogAspect {
     private final static Logger LOG = LoggerFactory.getLogger(LogAspect.class);
 
     /**
-     * 定义一个切点
+     * 切点：匹配 com.jiawa 包下所有 Controller 的 public 方法。
      */
     @Pointcut("execution(public * com.jiawa..*Controller.*(..))")
     public void controllerPointcut() {
     }
 
+    /**
+     * 前置通知：打印请求 URL、HTTP 方法、类名方法名、远程地址及请求参数。
+     */
     @Before("controllerPointcut()")
     public void doBefore(JoinPoint joinPoint) {
 
@@ -65,19 +69,22 @@ public class LogAspect {
             arguments[i] = args[i];
         }
         // 排除字段，敏感字段或太长的字段不显示：身份证、手机号、邮箱、密码等
-        String[] excludeProperties = {};
+        String[] excludeProperties = {"password", "token", "mobile", "idCard", "idNum", "code"};
         PropertyPreFilters filters = new PropertyPreFilters();
         PropertyPreFilters.MySimplePropertyPreFilter excludefilter = filters.addFilter();
         excludefilter.addExcludes(excludeProperties);
         LOG.info("请求参数: {}", JSONObject.toJSONString(arguments, excludefilter));
     }
 
+    /**
+     * 环绕通知：执行目标方法并记录返回结果与耗时（ms）。
+     */
     @Around("controllerPointcut()")
     public Object doAround(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
         long startTime = System.currentTimeMillis();
         Object result = proceedingJoinPoint.proceed();
         // 排除字段，敏感字段或太长的字段不显示：身份证、手机号、邮箱、密码等
-        String[] excludeProperties = {};
+        String[] excludeProperties = {"password", "token", "mobile", "idCard", "idNum", "code"};
         PropertyPreFilters filters = new PropertyPreFilters();
         PropertyPreFilters.MySimplePropertyPreFilter excludefilter = filters.addFilter();
         excludefilter.addExcludes(excludeProperties);

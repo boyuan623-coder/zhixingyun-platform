@@ -6,11 +6,16 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 
+/** 席别枚举 —— 座位类型、中文名、里程单价（元/公里）。 */
 public enum SeatTypeEnum {
 
+    /** 一等座，0.4 元/公里 */
     YDZ("1", "一等座", new BigDecimal("0.4")),
+    /** 二等座，0.3 元/公里 */
     EDZ("2", "二等座", new BigDecimal("0.3")),
+    /** 软卧，0.6 元/公里 */
     RW("3", "软卧", new BigDecimal("0.6")),
+    /** 硬卧，0.5 元/公里 */
     YW("4", "硬卧", new BigDecimal("0.5"));
 
     private String code;

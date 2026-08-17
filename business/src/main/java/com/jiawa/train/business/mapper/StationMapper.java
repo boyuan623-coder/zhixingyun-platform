@@ -5,6 +5,10 @@ import com.jiawa.train.business.domain.StationExample;
 import java.util.List;
 import org.apache.ibatis.annotations.Param;
 
+/**
+ * station 表数据访问层，车站基础数据的数据库操作。
+ */
+
 public interface StationMapper {
     long countByExample(StationExample example);
 

@@ -5,6 +5,7 @@ import com.jiawa.train.member.domain.PassengerExample;
 import java.util.List;
 import org.apache.ibatis.annotations.Param;
 
+/** 乘车人表数据访问接口（MyBatis Mapper）。 */
 public interface PassengerMapper {
     long countByExample(PassengerExample example);
 

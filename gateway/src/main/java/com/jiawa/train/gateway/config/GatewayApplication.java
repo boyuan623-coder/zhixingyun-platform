@@ -7,6 +7,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.core.env.Environment;
 
+/** API 网关启动类（gateway 模块）。 */
 @SpringBootApplication
 @ComponentScan("com.jiawa")
 public class GatewayApplication {

@@ -1,5 +1,10 @@
 package com.jiawa.train.batch.req;
 
+/**
+ * 定时任务操作请求体。
+ * <p>封装任务类名、分组、cron 表达式及描述，供 JobController 各接口使用。
+ */
+
 public class CronJobReq {
     private String group;
 

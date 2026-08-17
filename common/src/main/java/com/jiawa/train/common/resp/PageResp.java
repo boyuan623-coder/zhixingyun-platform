@@ -3,6 +3,7 @@ package com.jiawa.train.common.resp;
 import java.io.Serializable;
 import java.util.List;
 
+/** 分页响应包装（common 模块）。 */
 public class PageResp<T> implements Serializable {
 
     /**

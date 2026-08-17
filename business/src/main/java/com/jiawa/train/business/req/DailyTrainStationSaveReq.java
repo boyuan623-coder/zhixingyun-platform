@@ -7,6 +7,10 @@ import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
 import java.util.Date;
 
+/**
+ * 每日途经站新增/修改请求。
+ */
+
 public class DailyTrainStationSaveReq {
 
     /**

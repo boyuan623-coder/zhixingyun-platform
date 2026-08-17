@@ -24,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+/** 座位基础数据服务 —— 根据车厢配置「铺」出全车座位矩阵。 */
 @Service
 public class TrainSeatService {
 
@@ -78,6 +79,12 @@ public class TrainSeatService {
         trainSeatMapper.deleteByPrimaryKey(id);
     }
 
+    /**
+     * 根据车厢配置重新生成某车次的全部基础座位（先删后插）。
+     * 管理端在配置完车厢后调用，为 genDaily 提供座位模板。
+     *
+     * @param trainCode 车次编号
+     */
     @Transactional
     public void genTrainSeat(String trainCode) {
         DateTime now = DateTime.now();

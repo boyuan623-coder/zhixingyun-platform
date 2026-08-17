@@ -8,6 +8,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.core.env.Environment;
 
+/** 会员微服务启动类。 */
 @SpringBootApplication
 @ComponentScan("com.jiawa")
 @MapperScan("com.jiawa.train.*.mapper")
@@ -15,6 +16,11 @@ public class MemberApplication {
 
     private static final Logger LOG = LoggerFactory.getLogger(MemberApplication.class);
 
+    /**
+     * 应用启动入口，启动后打印本地测试地址。
+     *
+     * @param args 命令行参数
+     */
     public static void main(String[] args) {
         SpringApplication app = new SpringApplication(MemberApplication.class);
         Environment env = app.run(args).getEnvironment();

@@ -5,6 +5,10 @@ import com.jiawa.train.business.domain.TrainExample;
 import java.util.List;
 import org.apache.ibatis.annotations.Param;
 
+/**
+ * train 表数据访问层，提供车次模板的 CRUD 及 Example 动态查询。
+ */
+
 public interface TrainMapper {
     long countByExample(TrainExample example);
 

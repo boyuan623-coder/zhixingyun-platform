@@ -8,6 +8,10 @@ import jakarta.validation.constraints.NotNull;
 import java.util.Date;
 import java.util.List;
 
+/**
+ * 确认购票请求，提交选座信息创建订单（核心购票接口入参）。
+ */
+
 public class ConfirmOrderDoReq {
 
     /**

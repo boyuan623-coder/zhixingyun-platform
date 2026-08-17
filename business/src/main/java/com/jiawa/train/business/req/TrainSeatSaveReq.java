@@ -6,6 +6,10 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
+/**
+ * 座位模板新增/修改请求，配置车厢内座位布局。
+ */
+
 public class TrainSeatSaveReq {
 
     /**

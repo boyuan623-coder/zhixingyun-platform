@@ -11,6 +11,7 @@ import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
+/** 管理端日座位维护。 */
 @RestController
 @RequestMapping("/admin/daily-train-seat")
 public class DailyTrainSeatAdminController {

@@ -19,6 +19,12 @@ import java.util.Date;
 import java.util.List;
 
 
+/**
+ * Quartz 定时任务管理接口。
+ * <p>提供任务的增删改查、暂停、恢复、手动触发等 REST API，
+ * 供管理后台动态配置 cron 表达式，无需重启应用。
+ */
+
 @RestController
 @RequestMapping(value = "/admin/job")
 public class JobController {

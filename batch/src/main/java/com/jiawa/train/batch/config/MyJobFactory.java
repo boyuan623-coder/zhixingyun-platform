@@ -6,6 +6,7 @@ import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import org.springframework.scheduling.quartz.SpringBeanJobFactory;
 import org.springframework.stereotype.Component;
 
+/** Quartz Job 工厂，让 Job 能注入 Spring Bean。 */
 @Component
 public class MyJobFactory extends SpringBeanJobFactory {
 

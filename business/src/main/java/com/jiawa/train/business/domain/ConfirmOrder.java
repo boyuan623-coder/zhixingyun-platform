@@ -2,6 +2,12 @@ package com.jiawa.train.business.domain;
 
 import java.util.Date;
 
+/**
+ * 确认订单实体，对应 confirm_order 表。
+ * <p>用户选座后创建的待支付/已确认订单，关联会员、车次、区间及每日余票记录。
+ * tickets 字段以 JSON 存储多张车票明细（乘客、座位、票价等）。
+ */
+
 public class ConfirmOrder {
     private Long id;
 
@@ -23,6 +29,7 @@ public class ConfirmOrder {
 
     private Date updateTime;
 
+    /** 车票明细 JSON，含乘客、座位、票价等选座结果 */
     private String tickets;
 
     public Long getId() {

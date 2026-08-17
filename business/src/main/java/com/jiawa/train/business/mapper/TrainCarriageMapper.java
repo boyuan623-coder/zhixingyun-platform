@@ -5,6 +5,10 @@ import com.jiawa.train.business.domain.TrainCarriageExample;
 import java.util.List;
 import org.apache.ibatis.annotations.Param;
 
+/**
+ * train_carriage 表数据访问层，车厢模板的数据库操作。
+ */
+
 public interface TrainCarriageMapper {
     long countByExample(TrainCarriageExample example);
 

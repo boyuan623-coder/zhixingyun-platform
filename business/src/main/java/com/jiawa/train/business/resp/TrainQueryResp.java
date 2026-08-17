@@ -6,6 +6,10 @@ import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 
 import java.util.Date;
 
+/**
+ * 车次模板查询响应，返回车次编号、类型、起终到站及时刻等。
+ */
+
 public class TrainQueryResp {
 
     /**

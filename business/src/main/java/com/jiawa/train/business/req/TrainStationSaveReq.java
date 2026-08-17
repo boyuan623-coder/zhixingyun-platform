@@ -7,6 +7,10 @@ import java.math.BigDecimal;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
+/**
+ * 途经站模板新增/修改请求，配置车次经停站序与时刻。
+ */
+
 public class TrainStationSaveReq {
 
     /**

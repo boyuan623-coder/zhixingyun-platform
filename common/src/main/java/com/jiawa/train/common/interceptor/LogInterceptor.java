@@ -7,12 +7,13 @@ import org.slf4j.MDC;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
-/**
- * 日志拦截器
- */
+/** 日志拦截器（common 模块）。 */
 @Component
 public class LogInterceptor implements HandlerInterceptor {
 
+    /**
+     * 前置处理：生成并注入 MDC 日志流水号，放行请求。
+     */
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
         // 增加日志流水号

@@ -11,6 +11,9 @@ import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * 管理端 —— 座位基础数据 CRUD（通常由 gen-seat 批量生成，也可单条维护）。
+ */
 @RestController
 @RequestMapping("/admin/train-seat")
 public class TrainSeatAdminController {

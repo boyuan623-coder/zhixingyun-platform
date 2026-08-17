@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 
 import java.util.Date;
 
+/** 乘车人查询响应 DTO。 */
 public class PassengerQueryResp {
 
     /**

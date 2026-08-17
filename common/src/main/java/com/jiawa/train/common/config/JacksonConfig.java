@@ -7,10 +7,6 @@
 // import org.springframework.context.annotation.Configuration;
 // import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 //
-// /**
-//  * 统一注解，解决前后端交互Long类型精度丢失的问题
-//  * 智行云（作者：tuboyuan）
-//  */
 // @Configuration
 // public class JacksonConfig {
 //     @Bean

@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Date;
 
+/** 管理端 —— 日车次管理与 gen-daily 触发入口。 */
 @RestController
 @RequestMapping("/admin/daily-train")
 public class DailyTrainAdminController {
@@ -38,6 +39,12 @@ public class DailyTrainAdminController {
         return new CommonResp<>();
     }
 
+    /**
+     * 生成指定日期全部车次的日数据（车站→车厢→座位→余票）。
+     * 通常由定时任务每日凌晨或运营手动触发。
+     *
+     * @param date 目标日期，格式 yyyy-MM-dd
+     */
     @GetMapping("/gen-daily/{date}")
     public CommonResp<Object> genDaily(@PathVariable @DateTimeFormat(pattern = "yyyy-MM-dd") Date date) {
         dailyTrainService.genDaily(date);

@@ -1,5 +1,10 @@
 package com.jiawa.train.batch.domain;
 
+/**
+ * 会员实体（batch 模块本地引用），对应 member 表。
+ * <p>batch 模块中用于 Quartz 数据源测试或示例，非核心业务实体。
+ */
+
 public class Member {
     private Long id;
 

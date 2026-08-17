@@ -24,6 +24,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+/** 车厢基础数据服务 —— 定义某车次各车厢的席别、行数、序号。 */
 @Service
 public class TrainCarriageService {
 

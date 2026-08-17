@@ -5,6 +5,10 @@ import org.springframework.format.annotation.DateTimeFormat;
 
 import java.util.Date;
 
+/**
+ * 每日途经站分页查询请求。
+ */
+
 public class DailyTrainStationQueryReq extends PageReq {
 
     /**

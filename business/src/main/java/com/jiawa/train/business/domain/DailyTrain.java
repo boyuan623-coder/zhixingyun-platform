@@ -2,6 +2,12 @@ package com.jiawa.train.business.domain;
 
 import java.util.Date;
 
+/**
+ * 每日车次实体，对应 daily_train 表。
+ * <p>每日层数据：由模板层 Train 按日期复制生成，承载某天的实际售票车次。
+ * 用户查票、购票均基于每日层数据。
+ */
+
 public class DailyTrain {
     private Long id;
 

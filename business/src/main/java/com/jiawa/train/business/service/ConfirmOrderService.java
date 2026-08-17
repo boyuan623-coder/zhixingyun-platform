@@ -2,6 +2,7 @@ package com.jiawa.train.business.service;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.date.DateField;
 import cn.hutool.core.date.DateTime;
 import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.StrUtil;
@@ -15,9 +16,14 @@ import com.jiawa.train.business.domain.DailyTrainSeatExample;
 import com.jiawa.train.business.domain.DailyTrainTicket;
 import com.jiawa.train.business.enums.ConfirmOrderStatusEnum;
 import com.jiawa.train.business.enums.SeatTypeEnum;
+import com.jiawa.train.business.feign.PaymentFeign;
 import com.jiawa.train.business.mapper.ConfirmOrderMapper;
 import com.jiawa.train.business.mapper.DailyTrainSeatMapper;
 import com.jiawa.train.business.mapper.DailyTrainTicketMapper;
+import com.jiawa.train.business.mq.ConfirmOrderAsyncDispatcher;
+import com.jiawa.train.business.mq.ConfirmOrderMessage;
+import com.jiawa.train.business.redis.TicketQueryCacheService;
+import com.jiawa.train.business.redis.TicketStockRedisService;
 import com.jiawa.train.business.req.ConfirmOrderDoReq;
 import com.jiawa.train.business.req.ConfirmOrderQueryReq;
 import com.jiawa.train.business.req.ConfirmOrderTicketReq;
@@ -28,20 +34,24 @@ import com.jiawa.train.common.exception.BusinessExceptionEnum;
 import com.jiawa.train.common.resp.PageResp;
 import com.jiawa.train.common.util.SnowUtil;
 import jakarta.annotation.Resource;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
+import java.math.BigDecimal;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.concurrent.TimeUnit;
 
+/**
+ * 购票确认服务（Redis 锁 + Lua 库存 + MQ 削峰 + Seata 支付）。
+ */
 @Service
 public class ConfirmOrderService {
 
@@ -49,12 +59,26 @@ public class ConfirmOrderService {
 
     @Resource
     private ConfirmOrderMapper confirmOrderMapper;
-
     @Resource
     private DailyTrainTicketMapper dailyTrainTicketMapper;
-
     @Resource
     private DailyTrainSeatMapper dailyTrainSeatMapper;
+    @Resource
+    private RedissonClient redissonClient;
+    @Resource
+    private TicketStockRedisService ticketStockRedisService;
+    @Resource
+    private TicketQueryCacheService ticketQueryCacheService;
+    @Resource
+    private ConfirmOrderAsyncDispatcher confirmOrderAsyncDispatcher;
+    @Resource
+    private PaymentFeign paymentFeign;
+    @Resource
+    private ConfirmOrderTxService confirmOrderTxService;
+
+    /** true=接口只入队；false=同步走完整购票（压测超卖用） */
+    @Value("${train.confirm.async:true}")
+    private boolean asyncConfirm;
 
     public void save(ConfirmOrderDoReq req) {
         DateTime now = DateTime.now();
@@ -73,19 +97,10 @@ public class ConfirmOrderService {
     public PageResp<ConfirmOrderQueryResp> queryList(ConfirmOrderQueryReq req) {
         ConfirmOrderExample confirmOrderExample = new ConfirmOrderExample();
         confirmOrderExample.setOrderByClause("id desc");
-        ConfirmOrderExample.Criteria criteria = confirmOrderExample.createCriteria();
-
-        LOG.info("查询页码：{}", req.getPage());
-        LOG.info("每页条数：{}", req.getSize());
         PageHelper.startPage(req.getPage(), req.getSize());
         List<ConfirmOrder> confirmOrderList = confirmOrderMapper.selectByExample(confirmOrderExample);
-
         PageInfo<ConfirmOrder> pageInfo = new PageInfo<>(confirmOrderList);
-        LOG.info("总行数：{}", pageInfo.getTotal());
-        LOG.info("总页数：{}", pageInfo.getPages());
-
         List<ConfirmOrderQueryResp> list = BeanUtil.copyToList(confirmOrderList, ConfirmOrderQueryResp.class);
-
         PageResp<ConfirmOrderQueryResp> pageResp = new PageResp<>();
         pageResp.setTotal(pageInfo.getTotal());
         pageResp.setList(list);
@@ -96,61 +111,220 @@ public class ConfirmOrderService {
         confirmOrderMapper.deleteByPrimaryKey(id);
     }
 
-    @Transactional
-    public void doConfirm(ConfirmOrderDoReq req) {
+    /**
+     * 用户下单入口：默认 MQ 异步削峰；可通过配置或 /do-sync 同步执行。
+     */
+    public Long doConfirm(ConfirmOrderDoReq req) {
         req.setMemberId(getLoginMemberId());
+        validateTickets(req.getTickets());
+        if (asyncConfirm) {
+            return submitAsync(req);
+        }
+        return doConfirmSync(req);
+    }
 
-        List<ConfirmOrderTicketReq> tickets = req.getTickets();
+    /** 同步购票（JMeter 超卖压测入口） */
+    public Long doConfirmSync(ConfirmOrderDoReq req) {
+        if (req.getMemberId() == null) {
+            req.setMemberId(getLoginMemberId());
+        }
+        validateTickets(req.getTickets());
+        Long orderId = SnowUtil.getSnowflakeNextId();
+        processConfirm(orderId, req);
+        return orderId;
+    }
+
+    /** 快速受理：落 INIT 订单 + 发 MQ */
+    public Long submitAsync(ConfirmOrderDoReq req) {
+        DateTime now = DateTime.now();
+        Long orderId = SnowUtil.getSnowflakeNextId();
+        ConfirmOrder order = new ConfirmOrder();
+        order.setId(orderId);
+        order.setMemberId(req.getMemberId());
+        order.setDate(req.getDate());
+        order.setTrainCode(req.getTrainCode());
+        order.setStart(req.getStart());
+        order.setEnd(req.getEnd());
+        order.setDailyTrainTicketId(req.getDailyTrainTicketId());
+        order.setTickets(JSONUtil.toJsonStr(req.getTickets()));
+        order.setStatus(ConfirmOrderStatusEnum.INIT.getCode());
+        order.setCreateTime(now);
+        order.setUpdateTime(now);
+        confirmOrderMapper.insert(order);
+
+        confirmOrderAsyncDispatcher.dispatch(new ConfirmOrderMessage(orderId, req));
+        LOG.info("抢票请求已入队 orderId={}", orderId);
+        return orderId;
+    }
+
+    /**
+     * 核心处理：Redisson 锁（看门狗续期）→ Lua 扣 Redis 库存 → Seata 全局事务（DB库存/座位/订单/支付）。
+     */
+    public void processConfirm(Long orderId, ConfirmOrderDoReq req) {
+        Long ticketId = req.getDailyTrainTicketId();
+        RLock lock = redissonClient.getLock("lock:confirm:" + ticketId);
+        boolean locked = false;
+        boolean redisDeducted = false;
+        Map<String, Integer> seatTypeCountMap = null;
+        try {
+            // 不传 leaseTime → 启用看门狗自动续期
+            locked = lock.tryLock(5, TimeUnit.SECONDS);
+            if (!locked) {
+                markFailure(orderId);
+                throw new BusinessException(BusinessExceptionEnum.CONFIRM_ORDER_LOCK_FAIL);
+            }
+
+            DailyTrainTicket dailyTrainTicket = dailyTrainTicketMapper.selectByPrimaryKey(ticketId);
+            if (ObjectUtil.isNull(dailyTrainTicket)) {
+                markFailure(orderId);
+                throw new BusinessException(BusinessExceptionEnum.CONFIRM_ORDER_TICKET_NOT_FOUND);
+            }
+
+            seatTypeCountMap = buildSeatTypeCountMap(req.getTickets());
+            // 若 Redis 无库存键则从 DB 预热后再扣
+            ensureRedisStock(dailyTrainTicket);
+            redisDeducted = ticketStockRedisService.deduct(ticketId, seatTypeCountMap);
+            if (!redisDeducted) {
+                markFailure(orderId);
+                throw new BusinessException(BusinessExceptionEnum.CONFIRM_ORDER_TICKET_NOT_ENOUGH);
+            }
+
+            try {
+                confirmOrderTxService.doConfirmInGlobalTx(orderId, req, dailyTrainTicket, seatTypeCountMap);
+            } catch (RuntimeException ex) {
+                ticketStockRedisService.restore(ticketId, seatTypeCountMap);
+                redisDeducted = false;
+                markFailure(orderId);
+                throw ex;
+            }
+
+            ticketQueryCacheService.evictByTicket(
+                    dailyTrainTicket.getDate(), dailyTrainTicket.getTrainCode(),
+                    dailyTrainTicket.getStart(), dailyTrainTicket.getEnd());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            markFailure(orderId);
+            throw new BusinessException(BusinessExceptionEnum.CONFIRM_ORDER_LOCK_FAIL);
+        } finally {
+            if (locked && lock.isHeldByCurrentThread()) {
+                lock.unlock();
+            }
+        }
+    }
+
+    /** 订单超时取消：回滚座位/DB余票/Redis库存，并退款 */
+    @Transactional
+    public int cancelTimeoutOrders(int timeoutMinutes) {
+        Date deadline = DateTime.now().offset(DateField.MINUTE, -timeoutMinutes);
+        ConfirmOrderExample example = new ConfirmOrderExample();
+        example.createCriteria()
+                .andStatusEqualTo(ConfirmOrderStatusEnum.INIT.getCode())
+                .andCreateTimeLessThan(deadline);
+        List<ConfirmOrder> list = confirmOrderMapper.selectByExampleWithBLOBs(example);
+        int count = 0;
+        for (ConfirmOrder order : list) {
+            cancelOne(order, false);
+            count++;
+        }
+
+        ConfirmOrderExample pendingEx = new ConfirmOrderExample();
+        pendingEx.createCriteria()
+                .andStatusEqualTo(ConfirmOrderStatusEnum.PENDING.getCode())
+                .andCreateTimeLessThan(deadline);
+        List<ConfirmOrder> pendingList = confirmOrderMapper.selectByExampleWithBLOBs(pendingEx);
+        for (ConfirmOrder order : pendingList) {
+            cancelOne(order, true);
+            count++;
+        }
+        return count;
+    }
+
+    private void cancelOne(ConfirmOrder order, boolean restoreStock) {
+        DateTime now = DateTime.now();
+        if (restoreStock && StrUtil.isNotBlank(order.getTickets())) {
+            List<ConfirmOrderTicketReq> tickets = JSONUtil.toList(order.getTickets(), ConfirmOrderTicketReq.class);
+            Map<String, Integer> map = buildSeatTypeCountMap(tickets);
+            DailyTrainTicket ticket = dailyTrainTicketMapper.selectByPrimaryKey(order.getDailyTrainTicketId());
+            if (ticket != null) {
+                // 回滚 DB 余票
+                restoreDailyTrainTicket(ticket, map);
+                ticketStockRedisService.restore(ticket.getId(), map);
+                // 回滚座位位图
+                restoreSeats(order, ticket, tickets);
+                BigDecimal amount = calcAmount(ticket, map);
+                try {
+                    paymentFeign.refund(new PaymentFeign.PayFeignReq(order.getMemberId(), order.getId(), amount));
+                } catch (Exception e) {
+                    LOG.warn("退款调用失败 orderId={}", order.getId(), e);
+                }
+                ticketQueryCacheService.evictByTicket(ticket.getDate(), ticket.getTrainCode(), ticket.getStart(), ticket.getEnd());
+            }
+        }
+        ConfirmOrder update = new ConfirmOrder();
+        update.setId(order.getId());
+        update.setStatus(ConfirmOrderStatusEnum.CANCEL.getCode());
+        update.setUpdateTime(now);
+        confirmOrderMapper.updateByPrimaryKeySelective(update);
+        LOG.info("超时取消订单 orderId={}", order.getId());
+    }
+
+    private void restoreSeats(ConfirmOrder order, DailyTrainTicket ticket, List<ConfirmOrderTicketReq> tickets) {
+        int startIndex = ticket.getStartIndex();
+        int endIndex = ticket.getEndIndex();
+        DailyTrainSeatExample example = new DailyTrainSeatExample();
+        example.createCriteria().andDateEqualTo(order.getDate()).andTrainCodeEqualTo(order.getTrainCode());
+        List<DailyTrainSeat> all = dailyTrainSeatMapper.selectByExample(example);
+        DateTime now = DateTime.now();
+        for (ConfirmOrderTicketReq t : tickets) {
+            if (StrUtil.isBlank(t.getSeat())) {
+                continue;
+            }
+            String col = t.getSeat().substring(0, 1);
+            String row = normalizeRow(t.getSeat().substring(1));
+            for (DailyTrainSeat seat : all) {
+                if (ObjectUtil.equal(seat.getCol(), col) && ObjectUtil.equal(seat.getRow(), row)
+                        && ObjectUtil.equal(seat.getSeatType(), t.getSeatTypeCode())) {
+                    String newSell = unmarkSell(seat.getSell(), startIndex, endIndex);
+                    DailyTrainSeat upd = new DailyTrainSeat();
+                    upd.setId(seat.getId());
+                    upd.setSell(newSell);
+                    upd.setUpdateTime(now);
+                    dailyTrainSeatMapper.updateByPrimaryKeySelective(upd);
+                    break;
+                }
+            }
+        }
+    }
+
+    private void ensureRedisStock(DailyTrainTicket ticket) {
+        Integer edz = ticketStockRedisService.getStock(ticket.getId(), SeatTypeEnum.EDZ.getCode());
+        if (edz == null) {
+            ticketStockRedisService.warmStock(ticket);
+        }
+    }
+
+    private void markFailure(Long orderId) {
+        if (orderId == null) {
+            return;
+        }
+        ConfirmOrder existing = confirmOrderMapper.selectByPrimaryKey(orderId);
+        if (existing == null) {
+            return;
+        }
+        ConfirmOrder update = new ConfirmOrder();
+        update.setId(orderId);
+        update.setStatus(ConfirmOrderStatusEnum.FAILURE.getCode());
+        update.setUpdateTime(DateTime.now());
+        confirmOrderMapper.updateByPrimaryKeySelective(update);
+    }
+
+    private void validateTickets(List<ConfirmOrderTicketReq> tickets) {
         if (CollUtil.isEmpty(tickets)) {
             throw new BusinessException(BusinessExceptionEnum.CONFIRM_ORDER_TICKET_EMPTY);
         }
         if (tickets.size() > 5) {
             throw new BusinessException(BusinessExceptionEnum.CONFIRM_ORDER_TICKET_TOO_MANY);
         }
-
-        DailyTrainTicket dailyTrainTicket = dailyTrainTicketMapper.selectByPrimaryKey(req.getDailyTrainTicketId());
-        if (ObjectUtil.isNull(dailyTrainTicket)) {
-            throw new BusinessException(BusinessExceptionEnum.CONFIRM_ORDER_TICKET_NOT_FOUND);
-        }
-
-        Map<String, Integer> seatTypeCountMap = buildSeatTypeCountMap(tickets);
-        deductDailyTrainTicket(dailyTrainTicket, seatTypeCountMap);
-
-        int startIndex = dailyTrainTicket.getStartIndex();
-        int endIndex = dailyTrainTicket.getEndIndex();
-        List<DailyTrainSeat> pickedSeats = pickSeatsInSameCarriage(
-                req.getDate(), req.getTrainCode(), tickets, startIndex, endIndex);
-        if (CollUtil.isEmpty(pickedSeats)) {
-            throw new BusinessException(BusinessExceptionEnum.CONFIRM_ORDER_SEAT_NOT_ENOUGH);
-        }
-
-        DateTime now = DateTime.now();
-        for (int i = 0; i < tickets.size(); i++) {
-            ConfirmOrderTicketReq ticket = tickets.get(i);
-            DailyTrainSeat dailyTrainSeat = pickedSeats.get(i);
-            String newSell = markSell(dailyTrainSeat.getSell(), startIndex, endIndex);
-            DailyTrainSeat seatUpdate = new DailyTrainSeat();
-            seatUpdate.setId(dailyTrainSeat.getId());
-            seatUpdate.setSell(newSell);
-            seatUpdate.setUpdateTime(now);
-            dailyTrainSeatMapper.updateByPrimaryKeySelective(seatUpdate);
-            ticket.setSeat(dailyTrainSeat.getCol() + trimRowLeadingZero(dailyTrainSeat.getRow()));
-        }
-
-        ConfirmOrder confirmOrder = new ConfirmOrder();
-        confirmOrder.setId(SnowUtil.getSnowflakeNextId());
-        confirmOrder.setMemberId(req.getMemberId());
-        confirmOrder.setDate(req.getDate());
-        confirmOrder.setTrainCode(req.getTrainCode());
-        confirmOrder.setStart(req.getStart());
-        confirmOrder.setEnd(req.getEnd());
-        confirmOrder.setDailyTrainTicketId(req.getDailyTrainTicketId());
-        confirmOrder.setTickets(JSONUtil.toJsonStr(tickets));
-        confirmOrder.setStatus(ConfirmOrderStatusEnum.SUCCESS.getCode());
-        confirmOrder.setCreateTime(now);
-        confirmOrder.setUpdateTime(now);
-        confirmOrderMapper.insert(confirmOrder);
-        LOG.info("购票成功，订单ID：{}", confirmOrder.getId());
     }
 
     private Long getLoginMemberId() {
@@ -169,147 +343,55 @@ public class ConfirmOrderService {
         return seatTypeCountMap;
     }
 
-    private void deductDailyTrainTicket(DailyTrainTicket dailyTrainTicket, Map<String, Integer> seatTypeCountMap) {
-        DailyTrainTicket update = new DailyTrainTicket();
-        update.setId(dailyTrainTicket.getId());
-        update.setUpdateTime(DateTime.now());
-
-        for (Map.Entry<String, Integer> entry : seatTypeCountMap.entrySet()) {
-            SeatTypeEnum seatTypeEnum = SeatTypeEnum.getEnumByCode(entry.getKey());
-            if (ObjectUtil.isNull(seatTypeEnum)) {
-                throw new BusinessException(BusinessExceptionEnum.CONFIRM_ORDER_TICKET_NOT_ENOUGH);
+    private BigDecimal calcAmount(DailyTrainTicket ticket, Map<String, Integer> seatTypeCountMap) {
+        BigDecimal total = BigDecimal.ZERO;
+        for (Map.Entry<String, Integer> e : seatTypeCountMap.entrySet()) {
+            SeatTypeEnum type = SeatTypeEnum.getEnumByCode(e.getKey());
+            if (type == null) {
+                continue;
             }
-            int count = entry.getValue();
-            switch (seatTypeEnum) {
-                case YDZ -> {
-                    if (dailyTrainTicket.getYdz() < count) {
-                        throw new BusinessException(BusinessExceptionEnum.CONFIRM_ORDER_TICKET_NOT_ENOUGH);
-                    }
-                    update.setYdz(dailyTrainTicket.getYdz() - count);
-                    dailyTrainTicket.setYdz(dailyTrainTicket.getYdz() - count);
+            BigDecimal price = switch (type) {
+                case YDZ -> ticket.getYdzPrice();
+                case EDZ -> ticket.getEdzPrice();
+                case RW -> ticket.getRwPrice();
+                case YW -> ticket.getYwPrice();
+            };
+            if (price == null) {
+                price = BigDecimal.ONE;
+            }
+            total = total.add(price.multiply(BigDecimal.valueOf(e.getValue())));
+        }
+        return total;
+    }
+
+    private void restoreDailyTrainTicket(DailyTrainTicket ticket, Map<String, Integer> map) {
+        DailyTrainTicket update = new DailyTrainTicket();
+        update.setId(ticket.getId());
+        update.setUpdateTime(DateTime.now());
+        for (Map.Entry<String, Integer> e : map.entrySet()) {
+            SeatTypeEnum type = SeatTypeEnum.getEnumByCode(e.getKey());
+            int c = e.getValue();
+            switch (type) {
+                case YDZ -> update.setYdz(ticket.getYdz() + c);
+                case EDZ -> update.setEdz(ticket.getEdz() + c);
+                case RW -> update.setRw(ticket.getRw() + c);
+                case YW -> update.setYw(ticket.getYw() + c);
+                default -> {
                 }
-                case EDZ -> {
-                    if (dailyTrainTicket.getEdz() < count) {
-                        throw new BusinessException(BusinessExceptionEnum.CONFIRM_ORDER_TICKET_NOT_ENOUGH);
-                    }
-                    update.setEdz(dailyTrainTicket.getEdz() - count);
-                    dailyTrainTicket.setEdz(dailyTrainTicket.getEdz() - count);
-                }
-                case RW -> {
-                    if (dailyTrainTicket.getRw() < count) {
-                        throw new BusinessException(BusinessExceptionEnum.CONFIRM_ORDER_TICKET_NOT_ENOUGH);
-                    }
-                    update.setRw(dailyTrainTicket.getRw() - count);
-                    dailyTrainTicket.setRw(dailyTrainTicket.getRw() - count);
-                }
-                case YW -> {
-                    if (dailyTrainTicket.getYw() < count) {
-                        throw new BusinessException(BusinessExceptionEnum.CONFIRM_ORDER_TICKET_NOT_ENOUGH);
-                    }
-                    update.setYw(dailyTrainTicket.getYw() - count);
-                    dailyTrainTicket.setYw(dailyTrainTicket.getYw() - count);
-                }
-                default -> throw new BusinessException(BusinessExceptionEnum.CONFIRM_ORDER_TICKET_NOT_ENOUGH);
             }
         }
         dailyTrainTicketMapper.updateByPrimaryKeySelective(update);
     }
 
-    private List<DailyTrainSeat> pickSeatsInSameCarriage(Date date,
-                                                         String trainCode,
-                                                         List<ConfirmOrderTicketReq> tickets,
-                                                         int startIndex,
-                                                         int endIndex) {
-        DailyTrainSeatExample example = new DailyTrainSeatExample();
-        example.createCriteria()
-                .andDateEqualTo(date)
-                .andTrainCodeEqualTo(trainCode);
-        List<DailyTrainSeat> allSeats = dailyTrainSeatMapper.selectByExample(example);
-        if (CollUtil.isEmpty(allSeats)) {
-            return null;
-        }
-
-        Set<Integer> carriageIndexes = allSeats.stream()
-                .map(DailyTrainSeat::getCarriageIndex)
-                .collect(Collectors.toCollection(HashSet::new));
-
-        for (Integer carriageIndex : carriageIndexes) {
-            List<DailyTrainSeat> carriageSeats = allSeats.stream()
-                    .filter(item -> ObjectUtil.equal(item.getCarriageIndex(), carriageIndex))
-                    .collect(Collectors.toList());
-            List<DailyTrainSeat> pickedSeats = new ArrayList<>();
-            boolean success = true;
-            for (ConfirmOrderTicketReq ticket : tickets) {
-                DailyTrainSeat seat = findSeat(carriageSeats, ticket, startIndex, endIndex, pickedSeats);
-                if (ObjectUtil.isNull(seat)) {
-                    success = false;
-                    break;
-                }
-                pickedSeats.add(seat);
-            }
-            if (success) {
-                return pickedSeats;
-            }
-        }
-        return null;
-    }
-
-    private DailyTrainSeat findSeat(List<DailyTrainSeat> carriageSeats,
-                                    ConfirmOrderTicketReq ticket,
-                                    int startIndex,
-                                    int endIndex,
-                                    List<DailyTrainSeat> pickedSeats) {
-        String expectedCol = null;
-        String expectedRow = null;
-        if (StrUtil.isNotBlank(ticket.getSeat())) {
-            expectedCol = ticket.getSeat().substring(0, 1);
-            expectedRow = normalizeRow(ticket.getSeat().substring(1));
-        }
-
-        for (DailyTrainSeat seat : carriageSeats) {
-            if (!ObjectUtil.equal(seat.getSeatType(), ticket.getSeatTypeCode())) {
-                continue;
-            }
-            if (pickedSeats.stream().anyMatch(item -> ObjectUtil.equal(item.getId(), seat.getId()))) {
-                continue;
-            }
-            if (StrUtil.isNotBlank(expectedCol)
-                    && (!ObjectUtil.equal(seat.getCol(), expectedCol)
-                    || !ObjectUtil.equal(seat.getRow(), expectedRow))) {
-                continue;
-            }
-            if (canSell(seat.getSell(), startIndex, endIndex)) {
-                return seat;
-            }
-        }
-        return null;
-    }
-
-    private boolean canSell(String sell, int startIndex, int endIndex) {
-        if (StrUtil.isBlank(sell)) {
-            return false;
-        }
-        for (int i = startIndex - 1; i <= endIndex - 2; i++) {
-            if (sell.charAt(i) != '0') {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    private String markSell(String sell, int startIndex, int endIndex) {
+    private String unmarkSell(String sell, int startIndex, int endIndex) {
         char[] chars = sell.toCharArray();
         for (int i = startIndex - 1; i <= endIndex - 2; i++) {
-            chars[i] = '1';
+            chars[i] = '0';
         }
         return new String(chars);
     }
 
     private String normalizeRow(String row) {
         return StrUtil.fillBefore(row, '0', 2);
-    }
-
-    private String trimRowLeadingZero(String row) {
-        return String.valueOf(Integer.parseInt(row));
     }
 }

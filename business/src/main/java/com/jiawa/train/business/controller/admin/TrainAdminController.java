@@ -13,6 +13,12 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * 管理端 —— 车次基础数据 CRUD，及按车次生成座位矩阵。
+ * <p>
+ * <b>关键接口：</b>{@code GET /admin/train/gen-seat/{trainCode}} 触发 TrainSeatService.genTrainSeat，
+ * 需在 gen-daily 之前完成「车次→停靠站→车厢→座位」的基础数据配置。
+ */
 @RestController
 @RequestMapping("/admin/train")
 public class TrainAdminController {
@@ -47,6 +53,7 @@ public class TrainAdminController {
         return new CommonResp<>(list);
     }
 
+    /** 根据车厢配置生成某车次全部基础座位（gen-daily 的前置步骤之一） */
     @GetMapping("/gen-seat/{trainCode}")
     public CommonResp<Object> genSeat(@PathVariable String trainCode) {
         trainSeatService.genTrainSeat(trainCode);

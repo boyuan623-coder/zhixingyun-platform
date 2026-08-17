@@ -11,6 +11,9 @@ import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * 管理端 —— 车厢基础数据 CRUD（配置席别、行数、车厢序号）。
+ */
 @RestController
 @RequestMapping("/admin/train-carriage")
 public class TrainCarriageAdminController {

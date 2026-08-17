@@ -5,6 +5,10 @@ import com.jiawa.train.business.domain.DailyTrainSeatExample;
 import java.util.List;
 import org.apache.ibatis.annotations.Param;
 
+/**
+ * daily_train_seat 表数据访问层，每日座位及售卖位图的数据库操作。
+ */
+
 public interface DailyTrainSeatMapper {
     long countByExample(DailyTrainSeatExample example);
 

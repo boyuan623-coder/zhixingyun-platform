@@ -6,6 +6,10 @@ import java.util.Date;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import java.math.BigDecimal;
 
+/**
+ * 途经站模板查询响应，含站序与里程。
+ */
+
 public class TrainStationQueryResp {
 
     /**

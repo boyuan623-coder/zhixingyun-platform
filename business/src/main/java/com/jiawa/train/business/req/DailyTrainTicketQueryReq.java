@@ -5,6 +5,10 @@ import org.springframework.format.annotation.DateTimeFormat;
 
 import java.util.Date;
 
+/**
+ * 每日区间余票分页查询请求，用于查票接口入参。
+ */
+
 public class DailyTrainTicketQueryReq extends PageReq {
 
     /**

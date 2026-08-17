@@ -11,6 +11,9 @@ import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * 管理端 —— 日停靠站 CRUD（查询/维护 genDaily 生成的日站数据）。
+ */
 @RestController
 @RequestMapping("/admin/daily-train-station")
 public class DailyTrainStationAdminController {

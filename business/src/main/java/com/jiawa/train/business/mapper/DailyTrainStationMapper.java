@@ -5,6 +5,10 @@ import com.jiawa.train.business.domain.DailyTrainStationExample;
 import java.util.List;
 import org.apache.ibatis.annotations.Param;
 
+/**
+ * daily_train_station 表数据访问层，每日途经站的数据库操作。
+ */
+
 public interface DailyTrainStationMapper {
     long countByExample(DailyTrainStationExample example);
 

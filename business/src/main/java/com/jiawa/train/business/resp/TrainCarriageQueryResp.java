@@ -5,6 +5,10 @@ import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import java.util.Date;
 import com.fasterxml.jackson.annotation.JsonFormat;
 
+/**
+ * 车厢模板查询响应。
+ */
+
 public class TrainCarriageQueryResp {
 
     /**

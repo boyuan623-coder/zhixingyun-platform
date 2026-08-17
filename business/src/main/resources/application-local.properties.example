@@ -1,6 +1,5 @@
-# 智行云 - business 服务本地配置示例（tuboyuan）
-# 复制为 application-local.properties 后，在 application.properties 中增加：
-# spring.profiles.active=local
+# business 服务本地配置示例
+# 复制为 application-local.properties
 
 server.port=8002
 server.servlet.context-path=/business
@@ -12,5 +11,22 @@ spring.datasource.username=root
 spring.datasource.password=root
 spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
 
-mybatis.mapper-locations=classpath:/mapper/**/*.xml
-logging.level.com.jiawa.train.business.mapper=trace
+spring.data.redis.host=127.0.0.1
+spring.data.redis.port=6379
+
+spring.rabbitmq.host=127.0.0.1
+spring.rabbitmq.port=5672
+spring.rabbitmq.username=train
+spring.rabbitmq.password=train123
+
+train.confirm.async=true
+train.order.timeout-minutes=15
+
+seata.enabled=true
+seata.application-id=business
+seata.tx-service-group=train_tx_group
+seata.service.vgroup-mapping.train_tx_group=default
+seata.service.grouplist.default=127.0.0.1:8091
+seata.registry.type=file
+seata.config.type=file
+

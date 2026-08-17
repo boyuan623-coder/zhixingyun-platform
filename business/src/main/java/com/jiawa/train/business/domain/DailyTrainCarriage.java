@@ -2,6 +2,11 @@ package com.jiawa.train.business.domain;
 
 import java.util.Date;
 
+/**
+ * 每日车厢实体，对应 daily_train_carriage 表。
+ * <p>每日层：某日期某车次下的车厢配置，由 TrainCarriage 模板按日生成。
+ */
+
 public class DailyTrainCarriage {
     private Long id;
 

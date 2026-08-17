@@ -1,5 +1,6 @@
 package com.jiawa.train.common.exception;
 
+/** 业务异常枚举（common 模块）。 */
 public enum BusinessExceptionEnum {
 
     MEMBER_MOBILE_EXIST("手机号已注册"),
@@ -17,7 +18,11 @@ public enum BusinessExceptionEnum {
     CONFIRM_ORDER_TICKET_NOT_ENOUGH("余票不足"),
     CONFIRM_ORDER_SEAT_NOT_ENOUGH("座位不足"),
     CONFIRM_ORDER_TICKET_EMPTY("请选择乘车人"),
-    CONFIRM_ORDER_TICKET_TOO_MANY("最多只能购买5张车票");
+    CONFIRM_ORDER_TICKET_TOO_MANY("最多只能购买5张车票"),
+    CONFIRM_ORDER_LOCK_FAIL("系统繁忙，请稍后重试"),
+
+    PAY_BALANCE_NOT_ENOUGH("账户余额不足"),
+    PAY_ACCOUNT_ERROR("支付账户异常");
 
     private String desc;
 

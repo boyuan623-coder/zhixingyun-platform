@@ -10,6 +10,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+/**
+ * 用户端 —— 车次列表接口。
+ * <p>
+ * <b>职责：</b>返回全部基础车次，供前端筛选或展示。
+ */
 @RestController
 @RequestMapping("/train")
 public class TrainController {

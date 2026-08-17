@@ -3,6 +3,7 @@ package com.jiawa.train.member.domain;
 import java.util.ArrayList;
 import java.util.List;
 
+/** 会员动态查询条件构建器（MyBatis Generator 生成）。 */
 public class MemberExample {
     protected String orderByClause;
 

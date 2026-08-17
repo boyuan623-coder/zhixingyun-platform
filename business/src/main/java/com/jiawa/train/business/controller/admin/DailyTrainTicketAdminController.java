@@ -11,6 +11,7 @@ import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
+/** 管理端 —— 日余票 CRUD（O-D 票价与各席别库存的后台维护）。 */
 @RestController
 @RequestMapping("/admin/daily-train-ticket")
 public class DailyTrainTicketAdminController {
